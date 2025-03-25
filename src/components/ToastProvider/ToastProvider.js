@@ -14,6 +14,20 @@ function ToastProvider({ children }) {
 	const [toasts, setToasts] = React.useState([]);
 	const [hasToast, setHasToast] = React.useState(false);
 
+	React.useEffect(() => {
+		function handleKeydown(event) {
+			if (event.code === 'Escape') {
+				dismissAllToasts();
+			}
+		}
+
+		window.addEventListener('keydown', handleKeydown);
+
+		return () => {
+			window.removeEventListener('keydown', handleKeydown);
+		};
+	}, []);
+
 	function createToast(message, variant) {
 		// add new toast to array
 		const newToasts = [...toasts];
@@ -28,6 +42,11 @@ function ToastProvider({ children }) {
 		setToasts(newToasts);
 
 		setHasToast(newToasts.length > 0);
+	}
+
+	function dismissAllToasts() {
+		setToasts([]);
+		setHasToast(false);
 	}
 
 	const value = React.useMemo(() => {
