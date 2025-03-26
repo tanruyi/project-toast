@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { useKeydown } from '../../hooks/use-keydown';
 
 export const ToastContext = React.createContext();
 
@@ -14,35 +15,34 @@ function ToastProvider({ children }) {
 	const [toasts, setToasts] = React.useState([]);
 	const [hasToast, setHasToast] = React.useState(false);
 
-	React.useEffect(() => {
-		function handleKeydown(event) {
-			if (event.code === 'Escape') {
-				dismissAllToasts();
-			}
-		}
-
-		window.addEventListener('keydown', handleKeydown);
-
-		return () => {
-			window.removeEventListener('keydown', handleKeydown);
-		};
+	// memoise the callback passed to useKeydown hook so it does not get regenerated on every render
+	const handleEscape = React.useCallback(() => {
+		dismissAllToasts();
 	}, []);
 
-	function createToast(message, variant) {
-		// add new toast to array
-		const newToasts = [...toasts];
-		newToasts.push(new ToastProps(crypto.randomUUID(), message, variant));
-		setToasts(newToasts);
+	useKeydown('Escape', handleEscape);
 
-		setHasToast(true);
-	}
+	const createToast = useCallback(
+		(message, variant) => {
+			// add new toast to array
+			const newToasts = [...toasts];
+			newToasts.push(new ToastProps(crypto.randomUUID(), message, variant));
+			setToasts(newToasts);
 
-	function dismissToast(id) {
-		const newToasts = toasts.filter((element) => element.id !== id);
-		setToasts(newToasts);
+			setHasToast(true);
+		},
+		[toasts]
+	);
 
-		setHasToast(newToasts.length > 0);
-	}
+	const dismissToast = useCallback(
+		(id) => {
+			const newToasts = toasts.filter((element) => element.id !== id);
+			setToasts(newToasts);
+
+			setHasToast(newToasts.length > 0);
+		},
+		[toasts]
+	);
 
 	function dismissAllToasts() {
 		setToasts([]);
@@ -51,7 +51,7 @@ function ToastProvider({ children }) {
 
 	const value = React.useMemo(() => {
 		return { toasts, hasToast, createToast, dismissToast };
-	}, [toasts]);
+	}, [createToast, dismissToast, hasToast, toasts]);
 
 	return <ToastContext.Provider value={value}>{children}</ToastContext.Provider>;
 }
